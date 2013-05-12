@@ -1,0 +1,14 @@
+Name:              richreports
+Version:           0.0.0.1
+Synopsis:          Integrated pretty-printing and error/static analysis reporting.
+Description:       Integrated pretty-printing and error/static analysis reporting.
+Category:          Text
+License:           GPL
+Author:            Andrei Lapets
+Maintainer:        Andrei Lapets <lapets@bu.edu>
+Build-Type:        Simple
+Cabal-Version:     >= 1.2
+
+library
+  exposed-modules: Text.RichReports
+  build-depends:   base >= 3 && < 5, Text.Ascetic
