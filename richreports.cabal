@@ -11,4 +11,4 @@ Cabal-Version:     >= 1.2
 
 library
   exposed-modules: Text.RichReports
-  build-depends:   base >= 3 && < 5, Text.Ascetic
+  build-depends:   base >= 3 && < 5, ascetic, MissingH
