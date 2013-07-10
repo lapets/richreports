@@ -144,20 +144,20 @@ instance H.ToHTML Report where
                   ("font-size", "12px")
                 ]
               ),
-              ([".RichReports_Clickable"], Nothing, [("cursor","pointer")]),
+              ( [".RichReports_Clickable"], Nothing, [("cursor","pointer")] ),
               ( [".RichReports_Clickable_Exclamation"], 
                 Nothing, 
                 [("background-color","yellow"), ("border","1px solid black"), ("margin","0px 5px 0px 5px")]
               ),
-              ([".RichReports_Clickable"], Just "hover", [("background-color","yellow")]),
-              ([".RichReports_BlockIndent"], Nothing, [("margin-left", "10px")]),
-              ([".RichReports_Keyword"], Nothing, [("font-weight", "bold"), ("color", "blue")]),
-              ([".RichReports_Variable"], Nothing, [("font-style", "italic"), ("color", "green")]),
-              ([".RichReports_Literal"], Nothing, [("font-weight", "bold"), ("color", "firebrick")]),
-              ([".RichReports_Highlight"], Nothing, [("margin","2px")]),
-              ([".RichReports_Highlight_Unbound"], Nothing, [("background-color", "orange")]),
-              ([".RichReports_Highlight_Duplicate"], Nothing, [("background-color", "yellow")]),
-              ([".RichReports_Highlight_Error"], Nothing, [("background-color", "lightpink")])
+              ( [".RichReports_Clickable"], Just "hover", [("background-color","yellow")] ),
+              ( [".RichReports_BlockIndent"], Nothing, [("margin-left", "10px")] ),
+              ( [".RichReports_Keyword"], Nothing, [("font-weight", "bold"), ("color", "blue")] ),
+              ( [".RichReports_Variable"], Nothing, [("font-style", "italic"), ("color", "green")] ),
+              ( [".RichReports_Literal"], Nothing, [("font-weight", "bold"), ("color", "firebrick")] ),
+              ( [".RichReports_Highlight"], Nothing, [("margin","2px")] ),
+              ( [".RichReports_Highlight_Unbound"], Nothing, [("background-color", "orange")] ),
+              ( [".RichReports_Highlight_Duplicate"], Nothing, [("background-color", "yellow")] ),
+              ( [".RichReports_Highlight_Error"], Nothing, [("background-color", "lightpink")] )
             ]
           ),
           H.script_ [("type","text/javascript"), ("src","http://ajax.googleapis.com/ajax/libs/jquery/1.4.3/jquery.min.js")] "",

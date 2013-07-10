@@ -7,8 +7,8 @@
   (major1) == 1 && (major2) <  2 || \
   (major1) == 1 && (major2) == 2 && (minor) <= 0)
 
-/* package ascetic-0.0.0.1 */
-#define VERSION_ascetic "0.0.0.1"
+/* package ascetic-0.0.0.2 */
+#define VERSION_ascetic "0.0.0.2"
 #define MIN_VERSION_ascetic(major1,major2,minor) (\
   (major1) <  0 || \
   (major1) == 0 && (major2) <  0 || \
