@@ -28,9 +28,9 @@ import qualified Text.Ascetic.HTML as H
 type Message = Report
 
 data Highlight =
-    Unbound
-  | Duplicate
-  | Error
+    HighlightUnbound
+  | HighlightDuplicate
+  | HighlightError
   | Highlight [H.Class]
   deriving (Eq, Show)
 
@@ -39,6 +39,7 @@ data Category =
   | Literal
   | Constant
   | Variable
+  | Error
   deriving (Eq, Show)
 
 data Report =
@@ -73,17 +74,46 @@ class ToMessages a where
 ----------------------------------------------------------------
 -- Default class members.
 
--- None.
+instance ToReport a => ToReport [a] where
+  report xs = Conc $ map report xs
+
+----------------------------------------------------------------
+-- Concise synonyms.
+
+keyword = C Keyword [] []
+keyword_ = C Keyword
+key = C Keyword [] []
+key_ = C Keyword
+
+literal = C Literal [] []
+literal_ = C Literal
+lit = C Literal [] []
+lit_ = C Literal
+
+constant = C Constant [] []
+constant_ = C Constant
+const = C Constant [] []
+const_ = C Constant
+
+variable = C Variable [] []
+variable_ = C Variable
+var = C Variable [] []
+var_ = C Variable
+
+error = C Error [] []
+error_ = C Error
+err = C Error [] []
+err_ = C Error
 
 ----------------------------------------------------------------
 -- Generation of an interactive HTML version of the report.
 
 highlight :: Highlight -> [H.Class]
 highlight h = case h of
-  Unbound -> ["RichReports_Highlight_Unbound"]
-  Duplicate -> ["RichReports_Highlight_Duplicate"]
-  Error -> ["RichReports_Highlight_Error"]
-  Highlight hs -> hs
+  HighlightUnbound   -> ["RichReports_Highlight_Unbound"]
+  HighlightDuplicate -> ["RichReports_Highlight_Duplicate"]
+  HighlightError     -> ["RichReports_Highlight_Error"]
+  Highlight hs       -> hs
 
 messageToAttr :: [Message] -> (H.Property, H.Value)
 messageToAttr ms = ("onclick","msg(this, [" ++ (join "," ["'" ++ show (H.html m) ++ "'" | m <- ms]) ++ "]);")
@@ -141,23 +171,31 @@ instance H.ToHTML Report where
                   ("padding","3px"),
                   ("border","1px solid black"),
                   ("font-family", "Courier,Monospace"),
-                  ("font-size", "12px")
+                  ("font-size", "12px"),
+                  ("cursor","pointer")
                 ]
               ),
               ( [".RichReports_Clickable"], Nothing, [("cursor","pointer")] ),
               ( [".RichReports_Clickable_Exclamation"], 
                 Nothing, 
-                [("background-color","yellow"), ("border","1px solid black"), ("margin","0px 5px 0px 5px")]
+                [ ("background-color","yellow"), 
+                  ("border","1px solid black"), 
+                  ("margin","0px 5px 0px 5px"),
+                  ("padding","0px 2px 0px 2px"),
+                  ("font-size","10px"),
+                  ("font-size","9px")
+                ]
               ),
               ( [".RichReports_Clickable"], Just "hover", [("background-color","yellow")] ),
-              ( [".RichReports_BlockIndent"], Nothing, [("margin-left", "10px")] ),
-              ( [".RichReports_Keyword"], Nothing, [("font-weight", "bold"), ("color", "blue")] ),
-              ( [".RichReports_Variable"], Nothing, [("font-style", "italic"), ("color", "green")] ),
-              ( [".RichReports_Literal"], Nothing, [("font-weight", "bold"), ("color", "firebrick")] ),
+              ( [".RichReports_Keyword"], Nothing, [("font-weight","bold"), ("color","blue")] ),
+              ( [".RichReports_Variable"], Nothing, [("font-style","italic"), ("color","green")] ),
+              ( [".RichReports_Literal"], Nothing, [("font-weight","bold"), ("color","firebrick")] ),
+              ( [".RichReports_Error"], Nothing, [("font-weight","bold"), ("color","red"), ("text-decoration","underline")] ),
               ( [".RichReports_Highlight"], Nothing, [("margin","2px")] ),
-              ( [".RichReports_Highlight_Unbound"], Nothing, [("background-color", "orange")] ),
-              ( [".RichReports_Highlight_Duplicate"], Nothing, [("background-color", "yellow")] ),
-              ( [".RichReports_Highlight_Error"], Nothing, [("background-color", "lightpink")] )
+              ( [".RichReports_Highlight_Unbound"], Nothing, [("background-color","orange")] ),
+              ( [".RichReports_Highlight_Duplicate"], Nothing, [("background-color","yellow")] ),
+              ( [".RichReports_Highlight_Error"], Nothing, [("background-color","lightpink")] ),
+              ( [".RichReports_BlockIndent"], Nothing, [("margin-left","10px")] )
             ]
           ),
           H.script_ [("type","text/javascript"), ("src","http://ajax.googleapis.com/ajax/libs/jquery/1.4.3/jquery.min.js")] "",
@@ -176,9 +214,7 @@ instance H.ToHTML Report where
           H.html r,
           H.div_ [("id","RichReports_Message"), ("style","display:none;"), ("onclick", "this.style.display='none';")] [H.content ""]
         ])
-    
-    
-    
+
     _ -> H.content ""
 
 --eof
