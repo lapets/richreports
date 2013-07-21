@@ -55,6 +55,7 @@ data Report =
   | Indent Report
   | Line [String] [Report]
   | LineIfFlat [String] Report
+  | Atom [Highlight] [Message] [Report]
   | Span [Highlight] [Message] [Report]
   | Block [Highlight] [Message] [Report]
   | BlockIndent [Highlight] [Message] [Report]
@@ -139,6 +140,11 @@ instance H.ToHTML Report where
     Row rs -> H.tr [ H.html r | r <- rs ]
     Table rs -> H.table [ H.html r | r <- rs ]
     Line _ rs -> H.div [H.html r | r <- rs]
+    Atom hs ms rs ->
+      let out = H.span_ [("class", join " " (concat (map highlight hs)))] [H.html r | r <- rs]
+      in case ms of
+        [] -> out
+        ms -> H.span [H.span_ [("class","RichReports_Clickable"), messageToAttr ms] [out]]
     Span hs ms rs ->
       let out = H.span_ [("class", join " " (concat (map highlight hs)))] [H.html r | r <- rs]
       in case ms of
@@ -182,7 +188,6 @@ instance H.ToHTML Report where
                   ("border","1px solid black"), 
                   ("margin","0px 5px 0px 5px"),
                   ("padding","0px 2px 0px 2px"),
-                  ("font-size","10px"),
                   ("font-size","9px")
                 ]
               ),
