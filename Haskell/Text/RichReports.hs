@@ -17,7 +17,7 @@ module Text.RichReports
   where
 
 import Data.List (intersperse)
-import Data.String.Utils (join)
+import Data.String.Utils (join, replace)
 
 import qualified Text.Ascetic.HTML as H
 
@@ -29,6 +29,7 @@ type Message = Report
 
 data Highlight =
     HighlightUnbound
+  | HighlightUnreachable
   | HighlightDuplicate
   | HighlightError
   | Highlight [H.Class]
@@ -111,13 +112,21 @@ err_ = C Error
 
 highlight :: Highlight -> [H.Class]
 highlight h = case h of
-  HighlightUnbound   -> ["RichReports_Highlight_Unbound"]
-  HighlightDuplicate -> ["RichReports_Highlight_Duplicate"]
-  HighlightError     -> ["RichReports_Highlight_Error"]
-  Highlight hs       -> hs
+  HighlightUnbound     -> ["RichReports_Highlight_Unbound"]
+  HighlightUnreachable -> ["RichReports_Highlight_Unreachable"]
+  HighlightDuplicate   -> ["RichReports_Highlight_Duplicate"]
+  HighlightError       -> ["RichReports_Highlight_Error"]
+  Highlight hs         -> hs
 
 messageToAttr :: [Message] -> (H.Property, H.Value)
-messageToAttr ms = ("onclick","msg(this, [" ++ (join "," ["'" ++ show (H.html m) ++ "'" | m <- ms]) ++ "]);")
+messageToAttr ms =
+  let conv m = 
+        replace "\r" "" $
+        replace "\n" "" $
+        replace "'" "\\'" $
+        replace "\"" "&quot;" $
+          show $ H.html m
+  in ("onclick", "msg(this, [" ++ (join "," ["'" ++ conv m ++ "'" | m <- ms]) ++ "]);")
 
 instance H.ToHTML Report where
   html r = case r of
@@ -198,6 +207,7 @@ instance H.ToHTML Report where
               ( [".RichReports_Error"], Nothing, [("font-weight","bold"), ("color","red"), ("text-decoration","underline")] ),
               ( [".RichReports_Highlight"], Nothing, [("margin","2px")] ),
               ( [".RichReports_Highlight_Unbound"], Nothing, [("background-color","orange")] ),
+              ( [".RichReports_Highlight_Unreachable"], Nothing, [("background-color","orange")] ),
               ( [".RichReports_Highlight_Duplicate"], Nothing, [("background-color","yellow")] ),
               ( [".RichReports_Highlight_Error"], Nothing, [("background-color","lightpink")] ),
               ( [".RichReports_BlockIndent"], Nothing, [("margin-left","10px")] )
