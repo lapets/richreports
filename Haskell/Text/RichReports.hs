@@ -78,6 +78,9 @@ class ToMessages a where
 
 instance ToReport a => ToReport [a] where
   report xs = Conc $ map report xs
+  
+instance ToReport a => ToReport (Maybe a) where
+  report x = Conc $ maybe [] (\r -> [report r]) x
 
 ----------------------------------------------------------------
 -- Concise synonyms.
