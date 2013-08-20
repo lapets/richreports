@@ -2,7 +2,8 @@
 --
 -- Rich Reports
 --
--- RichReports.hs
+-- @Text\/RichReports.hs@
+--
 --   Definitions for the representation and construction of a
 --   data structure corresponding to a structured representation
 --   of the concrete syntax of a programming language, with
@@ -22,8 +23,8 @@ import Data.String.Utils (join, replace)
 import qualified Text.Ascetic.HTML as H
 
 ----------------------------------------------------------------
--- Data structures (also used for report construction process)
--- and class.
+-- | Data structures (also used for report construction process)
+--   and classes.
 
 type Message = Report
 
@@ -74,7 +75,7 @@ class ToMessages a where
   messages :: a -> [Message]
 
 ----------------------------------------------------------------
--- Default class members.
+-- | Default class members.
 
 instance ToReport a => ToReport [a] where
   report xs = Conc $ map report xs
@@ -83,7 +84,7 @@ instance ToReport a => ToReport (Maybe a) where
   report x = Conc $ maybe [] (\r -> [report r]) x
 
 ----------------------------------------------------------------
--- Concise synonyms.
+-- | Concise synonyms.
 
 keyword = C Keyword [] []
 keyword_ = C Keyword
@@ -111,7 +112,7 @@ err = C Error [] []
 err_ = C Error
 
 ----------------------------------------------------------------
--- Generation of an interactive HTML version of the report.
+-- | Generation of an interactive HTML version of the report.
 
 highlight :: Highlight -> [H.Class]
 highlight h = case h of
