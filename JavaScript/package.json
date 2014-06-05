@@ -1,0 +1,31 @@
+{
+  "name": "richreports",
+  "preferGlobal": false,
+  "version": "0.0.0",
+  "author": "Chris Kuech <kuech@bu.edu>",
+  "description": "Definitions for the representation and construction of a data structure corresponding to a structured representation of the concrete syntax of a programming language, with annotations corresponding to static analysis results and error reports. Includes support for generation of ASCII text, as well as formatted HTML with interactive messages.",
+  "contributors": [
+    "Andrei Lapets <lapets@bu.edu>",
+    "Chris Kuech <kuech@bu.edu>"
+  ],
+  "bin": {},
+  "scripts": {},
+  "main": "RichReports.js",
+  "respository": {},
+  "keywords": [],
+  "dependencies": {},
+  "analyze": false,
+  "devDependencies": {},
+  "license": "MIT",
+  "engines": {
+    "node": ">=0.10"
+  },
+  "bundleDependencies": [],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lapets/richreports"
+  },
+  "bugs": {
+    "url": "https://github.com/lapets/richreports/issues"
+  }
+}

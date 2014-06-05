@@ -2,7 +2,7 @@
 
 echo Building Haskell package.
 cd Haskell
-release.sh
+sh release.sh
 cd ..
 echo Done.
 echo

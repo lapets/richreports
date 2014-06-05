@@ -44,12 +44,24 @@ data Category =
   | Error
   deriving (Eq, Show)
 
+data Entity = 
+    Lt
+  | Gt
+  | Space
+  | Ampersand
+  deriving (Eq)
+
+instance Show Entity where
+  show e = case e of
+    Lt -> "&lt;"
+    Gt -> "&gt;"
+    Space -> "&nbsp;"
+    Ampersand ->"&amp;"
+
 data Report =
     Text String
   | C Category [Highlight] [Message] String
-  | Space
-  | Lt
-  | Gt
+  | Entity Entity
   | Conc [Report]
   | Field Report
   | Row [Report]
@@ -147,7 +159,7 @@ instance H.ToHTML Report where
           ++ ( if length ms > 0 then [messageToAttr ms] else [] )
         )
         [H.content s]
-    Space -> H.content "&nbsp;"
+    Entity e -> H.content (show e)
     Conc rs -> H.conc [H.html r | r <- rs]
     Field r -> H.td (H.html r)
     Row rs -> H.tr [ H.html r | r <- rs ]
