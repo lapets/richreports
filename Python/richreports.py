@@ -1,7 +1,7 @@
+import uxadt
+_ = None
 
-from uxadt import uxadt, _
-
-eval(uxadt.definition({
+uxadt._({
 
   # Highlight
   'HighlightUnbound': [],
@@ -17,13 +17,17 @@ eval(uxadt.definition({
   'Variable': [],
   'Error': [],
 
+  # Entity
+  'Lt': [],
+  'Gt': [],
+  'Space': [],
+  'Ampersand': [],
+
   # Report
   'Text': [_],
   'C': [_,_,_,_],
-  'Space': [],
-  'Lt': [],
-  'Gt': [],
   'Conc': [_],
+  'Entity': [_],
   'Field': [_],
   'Row': [_],
   'Table': [_],
@@ -36,16 +40,25 @@ eval(uxadt.definition({
   'BlockIndent': [_,_,_],
   'Intersperse': [_,_],
   'Finalize': [_]
-  }))
+  })
+
+def entity(e):
+  return e\
+    ._(Lt(),        lambda: '&lt;')\
+    ._(Gt(),        lambda: '&gt;')\
+    ._(Space(),     lambda: '&nbsp;')\
+    ._(Ampersand(), lambda: '&amp;')\
+    .end
 
 
 def highlight(h):
   return h\
-    .match(HighlightUnbound(), lambda: ['RichReports_Highlight_Unbound'])\
-    .match(HighlightUnreachable(), lambda: ['RichReports_Highlight_Unreachable'])\
-    .match(HighlightDuplicate(), lambda: ['RichReports_Highlight_Duplicate'])\
-    .match(HighlightError(), lambda: ['RichReports_Highlight_Error'])\
-    .match(Highlight(_), lambda hs: hs)
+    ._(HighlightUnbound(),     lambda: ['RichReports_Highlight_Unbound'])\
+    ._(HighlightUnreachable(), lambda: ['RichReports_Highlight_Unreachable'])\
+    ._(HighlightDuplicate(),   lambda: ['RichReports_Highlight_Duplicate'])\
+    ._(HighlightError(),       lambda: ['RichReports_Highlight_Error'])\
+    ._(Highlight(_),           lambda hs: hs)\
+    .end
 
 
 def messageToAttr(ms):
@@ -55,7 +68,7 @@ def messageToAttr(ms):
       .replace('\'', '\\\'')\
       .replace('\n', '')\
       .replace('\r', '')\
-      + '\'';
+      + '\''
   return 'onclick=msg(this, ['+ ','.join([conv(m) for m in ms]) +']);'
 
 
@@ -63,8 +76,8 @@ def html(r):
   def html0(rs):
     return ''.join([html(r) for r in rs])
   return r\
-    .match(Text(_), lambda s: s)\
-    .match(C(_,_,_,_), lambda c,hs,ms,s:
+    ._(Text(_), lambda s: s)\
+    ._(C(_,_,_,_), lambda c,hs,ms,s:
       '<span class="RichReports_"'+c\
       + (' RichReports_Clickable' if hs else '')\
       + (' RichReports_Highlightable' if ms else '')\
@@ -72,26 +85,26 @@ def html(r):
       + '" ' + (messageToAttr(ms) if ms else '')\
       + '>' + s + '</span>'\
       )\
-    .match(Space(), lambda: '&nbsp;')\
-    .match(Conc(_), lambda rs: html0(rs))\
-    .match(Field(_), lambda rs: '<td>'+ html0(rs) + '</td>')\
-    .match(Row(_), lambda rs: '<tr>' + html0(rs) + '</tr>')\
-    .match(Table(_), lambda rs: '<table>' + html0(rs) + '</table>')\
-    .match(Line(_,_), lambda _,rs: '<div>' + html0(rs) + '</div>')\
-    .match(Atom(_,_,_), lambda hs,ms,rs:\
+    ._(Conc(_), html0)\
+    ._(Entity(_), entity)\
+    ._(Field(_), lambda rs: '<td>'+ html0(rs) + '</td>')\
+    ._(Row(_), lambda rs: '<tr>' + html0(rs) + '</tr>')\
+    ._(Table(_), lambda rs: '<table>' + html0(rs) + '</table>')\
+    ._(Line(_,_), lambda _,rs: '<div>' + html0(rs) + '</div>')\
+    ._(Atom(_,_,_), lambda hs,ms,rs:\
       '<span><span class="RichReports_Clickable" '+messageToAttr(ms)+'><span class="'+ ''.join([highlight(h) for h in hs]) +'">' + html0(rs) + '</span></span></span>'\
       if ms\
       else '<span class="'+ ''.join([highlight(h) for h in hs]) +'">' + html0(rs) + '</span>'\
       )\
-    .match(Span(_,_,_), lambda hs,ms,rs:\
+    ._(Span(_,_,_), lambda hs,ms,rs:\
       '<span><span class="RichReports_Clickable RichReports_Clickable_Exclamation" '+messageToAttr(ms)+'>!</span><span class="'+ ''.join([highlight(hs) for h in hs]) +'">' + html0(rs) + '</span></span>'\
       if ms\
       else '<span class="'+ ''.join([highlight(hs) for h in hs]) +'">' + html0(rs) + '</span>'\
       )\
-    .match(Block(_,_,_), lambda _0,_1,rs: '<div>' + html0(rs) + '</div>')\
-    .match(BlockIndent(_,_,_), lambda _0,_1,rs: '<div class="RichReports_BlockIndent">' + html0(rs) + '</div>')\
-    .match(Intersperse(_,_), lambda r,rs: html(r).join([html(r0) for r0 in rs]))\
-    .match(Finalize(_), lambda r: '''
+    ._(Block(_,_,_), lambda _0,_1,rs: '<div>' + html0(rs) + '</div>')\
+    ._(BlockIndent(_,_,_), lambda _0,_1,rs: '<div class="RichReports_BlockIndent">' + html0(rs) + '</div>')\
+    ._(Intersperse(_,_), lambda r,rs: html(r).join([html(r0) for r0 in rs]))\
+    ._(Finalize(_), lambda r: '''
         <!DOCTYPE html>
         <html>
         <head>
@@ -171,5 +184,6 @@ def html(r):
         </html>
       ''')\
     .end
+
 
 #eof

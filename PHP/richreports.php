@@ -1,11 +1,12 @@
 <?php
 
-require 'uxadt.php';
+include 'uxadt.php';
+define('_', null);
 
 
 
 
-eval(uxadt::definition(array(
+\uxadt\_(array(
 
   # Highlight
   'HighlightUnbound' => array(),
@@ -21,13 +22,17 @@ eval(uxadt::definition(array(
   'Variable' => array(),
   'Error' => array(),
 
-  # Report
-  'Text' => array(_),
-  'C' => array(_,_,_,_),
+  # Entity
   'Space' => array(),
   'Lt' => array(),
   'Gt' => array(),
-  'Cont' => array(_),
+  'Ampersand' => array(),
+
+  # Report
+  'Entity' => array(_),
+  'Text' => array(_),
+  'C' => array(_,_,_,_),
+  'Conc' => array(_),
   'Field' => array(_),
   'Row' => array(_),
   'Table' => array(_),
@@ -41,17 +46,28 @@ eval(uxadt::definition(array(
   'Intersperse' => array(_,_),
   'Finalize' => array(_)
 
-  )));
+));
+
+
+
+$entity = function ($e) {
+  return $e
+    ->_(Space(),     function () { return '&nbsp;'; })
+    ->_(Lt(),        function () { return '&lt;'; })
+    ->_(Gt(),        function () { return '&gt;'; })
+    ->_(Ampersand(), function () { return '&amp;'; })
+    ->end;
+};
 
 
 
 $highlight = function ($h) {
   return $h
-    ->match(HighlightUnbound(),     function ()    { return array("RichReports_Highlight_Unbound"); } )
-    ->match(HighlightUnreachable(), function ()    { return array("RichReports_Highlight_Unreachable"); } )
-    ->match(HighlightDuplicate(),   function ()    { return array("RichReports_Highlight_Duplicate"); } )
-    ->match(HighlightError(),       function ()    { return array("RichReports_Highlight_Error"); } )
-    ->match(Highlight(_),          function ($hs) { return $hs; })
+    ->_(HighlightUnbound(),     function ()    { return array("RichReports_Highlight_Unbound"); } )
+    ->_(HighlightUnreachable(), function ()    { return array("RichReports_Highlight_Unreachable"); } )
+    ->_(HighlightDuplicate(),   function ()    { return array("RichReports_Highlight_Duplicate"); } )
+    ->_(HighlightError(),       function ()    { return array("RichReports_Highlight_Error"); } )
+    ->_(Highlight(_),           function ($hs) { return $hs; })
     ->end;
 };
 
@@ -78,8 +94,8 @@ $html = function ($r) {
     return implode(array_map($html, $rs));
   };
   return $r
-    ->match(Text(_), function ($s) {return $s;})
-    ->match(C(_,_,_,_), function ($c, $hs, $ms, $s) {
+    ->_(Text(_), function ($s) {return $s;})
+    ->_(C(_,_,_,_), function ($c, $hs, $ms, $s) {
         return '<span class="RichReports_"' . $c
           . ($hs ? ' RichReports_Clickable' : '')
           . ($ms ? ' RichReports_Highlightable' : '')
@@ -87,24 +103,25 @@ $html = function ($r) {
           . '" ' . ($ms ? $messageToAttr($ms) : '')
           . '>' . $s . '</span>';
       })
-    ->match(Space(),   function () {return '&nbsp;';})
-    ->match(Conc(_),  function ($rs) {return $html0($rs);})
-    ->match(Field(_), function ($rs) {return '<td>' . $html0($rs) . '</td>';})
-    ->match(Row(_),   function ($rs) {return '<tr>' . $html0($rs);})
-    ->match(Table(_), function ($rs) {return '<table>' . $html0($rs) . '</table>';})
-    ->match(Line(_,_), function ($_, $rs) {return '<div>' . $html0($rs) . '</div>';})
-    ->match(Atom(_,_,_), function ($hs,$ms,$rs) {
+    ->_(Entity(), $entity)
+    ->_(Space(),   function () {return '&nbsp;';})
+    ->_(Conc(_),  function ($rs) {return $html0($rs);})
+    ->_(Field(_), function ($rs) {return '<td>' . $html0($rs) . '</td>';})
+    ->_(Row(_),   function ($rs) {return '<tr>' . $html0($rs);})
+    ->_(Table(_), function ($rs) {return '<table>' . $html0($rs) . '</table>';})
+    ->_(Line(_,_), function ($_, $rs) {return '<div>' . $html0($rs) . '</div>';})
+    ->_(Atom(_,_,_), function ($hs,$ms,$rs) {
         return $ms ? '<span><span class="RichReports_Clickable" '.$messageToAttr($ms) . '><span class="' . implode(array_map($highlight, $hs)) . '">' . $html0($rs) . '</span></span></span>'
                    : '<span class="'. implode(array_map($highlight, $hs)) . '">' . $html0($rs) . '</span>';
       })
-    ->match(Span(_,_,_), function ($hs,$ms,$rs) {
+    ->_(Span(_,_,_), function ($hs,$ms,$rs) {
         return $ms ? '<span><span class="RichReports_Clickable RichReports_Clickable_Exclamation" ' . $messageToAttr($ms) . '>!</span><span class="'. implode(array_map($highlight, $hs)) .'">' . $html0($rs) . '</span></span>'
                    : '<span class="'. implode(array_map($highlight, $hs)) .'">' . $html0($rs) . '</span>';
       })
-    ->match(Block(_,_,_), function ($_,$_,$rs) {return '<div>' . $html0($rs) . '</div>';})
-    ->match(BlockIndent(_,_,_), function ($_,$_,$rs) {return '<div class="RichReports_BlockIndent">' . $html0($rs) . '</div>';})
-    ->match(Intersperse(_,_), function ($r,$rs) {return implode($html($r), array_map($html, $rs));})
-    ->match(Finalize(_), function ($r) {
+    ->_(Block(_,_,_), function ($_,$_,$rs) {return '<div>' . $html0($rs) . '</div>';})
+    ->_(BlockIndent(_,_,_), function ($_,$_,$rs) {return '<div class="RichReports_BlockIndent">' . $html0($rs) . '</div>';})
+    ->_(Intersperse(_,_), function ($r,$rs) {return implode($html($r), array_map($html, $rs));})
+    ->_(Finalize(_), function ($r) {
         $s = $html($r);
         return <<<REPORT
 <!DOCTYPE html>

@@ -1,14 +1,11 @@
 
-
-
-var ux = require('./node_modules/uxadt/lib/uxadt.js').uxadt
-  ,  _ = undefined
-  ,  $ = require('underscore');
+var ux = require('./node_modules/uxadt/lib/uxadt.js')
+  ,  _ = require('underscore');
 
 
 
 // extend underscore.js
-$.conc = function (a,b) { return a.concat(b); }
+_.conc = function (a,b) { return a.concat(b); };
 
 
 
@@ -17,33 +14,33 @@ $.conc = function (a,b) { return a.concat(b); }
  * RichReports ADTs
  */
 
-var Highlight = {}
-  , Category  = {}
-  , Report    = {}
+ux._({
 
-ux.define(Highlight, {
+  // Highlight
   HighlightUnbound: [],
   HighlightUnreachable: [],
   HighlightDuplicate: [],
   HighlightError: [],
-  Highlight: [_]
-});
+  Highlight: [_],
 
-ux.define(Category, {
+  // Category
   Keyword: [],
   Literal: [],
   Constant: [],
   Variable: [],
-  Error: []
-});
+  Error: [],
 
-ux.define(Report, {
-  Text: [_],
-  C: [_,_,_,_],
+  // Entity
   Space: [],
   Lt: [],
   Gt: [],
-  Cont: [_],
+  Ampersand: [],
+
+  // Report
+  Entity: [_],
+  Text: [_],
+  C: [_,_,_,_],
+  Conc: [_],
   Field: [_],
   Row: [_],
   Table: [_],
@@ -56,18 +53,30 @@ ux.define(Report, {
   BlockIndent: [_,_,_],
   Intersperse: [_,_],
   Finalize: [_]
+
 });
 
 
 
 
+function entity (e) {
+  return e
+    ._(Space(),     function () { return "&nbsp;"; })
+    ._(Lt(),        function () { return "&lt;"; })
+    ._(Gt(),        function () { return "&gt;"; })
+    ._(Ampersand(), function () { return "&amp;"; })
+    .end;
+}
+
+
+
 function highlight (h) {
   return h
-    ._(Highlight.HighlightUnbound(),     function ()   { return ["RichReports_Highlight_Unbound"]; } )
-    ._(Highlight.HighlightUnreachable(), function ()   { return ["RichReports_Highlight_Unreachable"]; } )
-    ._(Highlight.HighlightDuplicate(),   function ()   { return ["RichReports_Highlight_Duplicate"]; } )
-    ._(Highlight.HighlightError(),       function ()   { return ["RichReports_Highlight_Error"]; } )
-    ._(Highlight.Highlight(_),           function (hs) { return hs; })
+    ._(HighlightUnbound(),     function ()   { return ["RichReports_Highlight_Unbound"]; } )
+    ._(HighlightUnreachable(), function ()   { return ["RichReports_Highlight_Unreachable"]; } )
+    ._(HighlightDuplicate(),   function ()   { return ["RichReports_Highlight_Duplicate"]; } )
+    ._(HighlightError(),       function ()   { return ["RichReports_Highlight_Error"]; } )
+    ._(Highlight(_),           function (hs) { return hs; })
     .end;
 }
 
@@ -81,50 +90,46 @@ function messageToAttr (ms) {
       .replace('\r', '')
       + '\'';
   }
-  return 'onclick=msg(this, ['+ $.map(ms, conv).join(',') +']);';
+  return 'onclick=msg(this, ['+ _.map(ms, conv).join(',') +']);';
 }
 
 
 function html (r) {
   function html0(rs) {
-    return $.reduce($.map(rs, html), $.conc, '');
+    return _.reduce(_.map(rs, html), _.conc, '');
   }
   return r
-    ._(Report.Text(_), function (s) { return s; })
-    ._(Report.C(_,_,_,_), function (c,hs,ms,s) {
+    ._(Text(_), _.identity)
+    ._(C(_,_,_,_), function (c,hs,ms,s) {
         return '<span class="RichReports_"'+c
             + (hs.length ? ' RichReports_Clickable' : '')
             + (ms.length ? ' RichReports_Highlightable' : '')
-            + $.reduce($.map(hs, highlight), $.conc, []).join(' ')
+            + _.reduce(_.map(hs, highlight), _.conc, []).join(' ')
             + '" ' + (ms.length ? messageToAttr(ms) : '') 
             + '>' + s + '</span>';
       })
-    ._(Report.Space(), function () {
-        return '&nbsp;'; 
-      })
-    ._(Report.Conc(_), function (rs) {
-        return html0(rs);
-      })
-    ._(Report.Field(_), function (rs) {
+    ._(Conc(_), html0)
+    ._(Entity(_), entity)
+    ._(Field(_), function (rs) {
         return '<td>' + html0(rs) + '</td>';
       })
-    ._(Report.Row(_), function (rs) {
+    ._(Row(_), function (rs) {
         return '<tr>' + html0(rs) + '</tr>';
       })
-    ._(Report.Table(_), function (rs) {
+    ._(Table(_), function (rs) {
         return '<table>' + html0(rs) + '</table>';
       })
-    ._(Report.Line(_,_), function (_0,rs) {
+    ._(Line(_,_), function (_0,rs) {
         return '<div>' + html0(rs) + '</div>';
       })
-    ._(Report.Atom(_,_,_), function (hs,ms,rs) {
-        var out = '<span class="'+ $.reduce($.map(hs, highlight), $.conc, []).join(' ') +'">'+ html0(rs) +'</span>';
+    ._(Atom(_,_,_), function (hs,ms,rs) {
+        var out = '<span class="'+ _.reduce(_.map(hs, highlight), _.conc, []).join(' ') +'">'+ html0(rs) +'</span>';
         return ms.length
             ? '<span><span class="RichReports_Clickable" '+messageToAttr(ms)+'>'+out+'</span></span>'
             : out;
       })
-    ._(Report.Span(_,_,_), function (hs,ms,rs) {
-        var out = '<span class="'+ $.reduce($.map(hs, highlight), $.conc, '') +'">' + html0(rs) + '</span>';
+    ._(Span(_,_,_), function (hs,ms,rs) {
+        var out = '<span class="'+ _.reduce(_.map(hs, highlight), _.conc, '') +'">' + html0(rs) + '</span>';
         return ms.length
             ? '<span>'
                 + '<span class="RichReports_Clickable RichReports_Clickable_Exclamation" '+ messageToAttr(ms) +'>!</span>'
@@ -132,16 +137,16 @@ function html (r) {
               + '</span>'
             : out;
       })
-    ._(Report.Block(_,_,_), function (_0,_1,rs) {
+    ._(Block(_,_,_), function (_0,_1,rs) {
         return '<div>' + html0(rs) + '</div>';
       })
-    ._(Report.BlockIndent(_,_,_), function (_0,_1,rs) {
+    ._(BlockIndent(_,_,_), function (_0,_1,rs) {
         return '<div class="RichReports_BlockIndent">' + html0(rs) + '</div>'; 
       })
-    ._(Report.Intersperse(_,_), function (r,rs) {
-        return $.map(rs, html).join( html(r) );
+    ._(Intersperse(_,_), function (r,rs) {
+        return _.map(rs, html).join( html(r) );
       })
-    ._(Report.Finalize(_), function (r) {
+    ._(Finalize(_), function (r) {
         return '\
           <!DOCTYPE html>\
           <html>\
@@ -209,9 +214,9 @@ function html (r) {
                   html += \'<div class="RichReports_MessagePortion">\' + msgs[i] + \'</div>\';\
                 document.getElementById(\'RichReports_Message\').innerHTML = html;\
                 document.getElementById(\'RichReports_Message\').style.display = \'inline-block\';\
-                var top = $(obj).offset().top;\
-                var left = $(obj).offset().left;\
-                $(\'#RichReports_Message\').offset({top:top + 15, left:left + 15});\
+                var top = _(obj).offset().top;\
+                var left = _(obj).offset().left;\
+                _(\'#RichReports_Message\').offset({top:top + 15, left:left + 15});\
               }     \
             </script>\
           </head>\
