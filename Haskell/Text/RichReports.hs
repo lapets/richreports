@@ -1,6 +1,6 @@
 ----------------------------------------------------------------
 --
--- Rich Reports
+-- | Rich Reports
 --
 -- @Text\/RichReports.hs@
 --
@@ -220,6 +220,7 @@ instance H.ToHTML Report where
               ( [".RichReports_Keyword"], Nothing, [("font-weight","bold"), ("color","blue")] ),
               ( [".RichReports_Variable"], Nothing, [("font-style","italic"), ("color","green")] ),
               ( [".RichReports_Literal"], Nothing, [("font-weight","bold"), ("color","firebrick")] ),
+              ( [".RichReports_Comment"], Nothing, [("font-style","italic"), ("color","#8A8A8A")] ),
               ( [".RichReports_Error"], Nothing, [("font-weight","bold"), ("color","red"), ("text-decoration","underline")] ),
               ( [".RichReports_Highlight"], Nothing, [("margin","2px")] ),
               ( [".RichReports_Highlight_Unbound"], Nothing, [("background-color","orange")] ),
