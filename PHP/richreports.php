@@ -1,65 +1,75 @@
-<?php
+<?php /**************************************************************
+** 
+** richreports.php
+**
+**   A library that supports the manual and automated assembly of
+**   modules for building interactive HTML reports consisting of
+**   abstract syntax trees as concrete syntax annotated with the
+**   results of static analysis and abstract interpretation
+**   algorithms.
+**
+**   Web:     richreports.org
+**   Version: 0.0.2.0
+**
+*/
 
-include 'uxadt.php';
+include('uxadt.php');
 define('_', null);
 
+/********************************************************************
+** Rich report data structure definitions.
+*/
 
-
-
-\uxadt\_(array(
-
-  # Highlight
+\uxadt\_('Highlight', array(
   'HighlightUnbound' => array(),
   'HighlightUnreachable' => array(),
   'HighlightDuplicate' => array(),
   'HighlightError' => array(),
-  'Highlight' => array(_),
+  'Highlight' => array('$'),
+  ));
 
-  # Category
-  'Keyword' => array(),
-  'Literal' => array(),
-  'Constant0' => array(), // Constant is a reserved word
-  'Variable' => array(),
-  'Error' => array(),
-
-  # Entity
+\uxadt\_('Entity', array(
   'Space' => array(),
   'Lt' => array(),
   'Gt' => array(),
   'Ampersand' => array(),
+  ));
 
-  # Report
-  'Entity' => array(_),
-  'Text' => array(_),
-  'C' => array(_,_,_,_),
-  'Conc' => array(_),
-  'Field' => array(_),
-  'Row' => array(_),
-  'Table' => array(_),
-  'Indent' => array(_),
-  'Line' => array(_,_),
-  'LineIfFlat' => array(_,_),
-  'Atom' => array(_,_,_),
-  'Span' => array(_,_,_),
-  'Block' => array(_,_,_),
-  'BlockIndent' => array(_,_,_),
-  'Intersperse' => array(_,_),
-  'Finalize' => array(_)
+\uxadt\_('Category', array(
+  'Symbol' => array(),
+  'Punctuation' => array(),
+  'Keyword' => array(),
+  'Literal' => array(),
+  'Constant' => array(), // Constant is a reserved word
+  'Operator' => array(),
+  'Builtin' => array(),
+  'Library' => array(), 
+  'Variable' => array(),
+  'Error' => array(),
+  ));
 
-));
+\uxadt\_('Report', array(
+  'C' => array('Category', array('Highlight'), array('Report'), '$'),
+  'Text' => array('$'),
+  'Entity' => array('Entity'),
 
+  'Line' => array(array('Report')),
+  'Atom' => array(array('Highlight'), array('Report'), array('Report')),
+  'Span' => array(array('Highlight'), array('Report'), array('Report')),
+  'Block' => array(array('Highlight'), array('Report'), array('Report')),
+  
+  'Conc' => array(array('Report')),
+  'Intersperse' => array('Report', array('Report')),
+  'Field' => array(array('Report')),
+  'Row' => array(array('Report')),
+  'Table' => array(array('Report')),
 
+  'Page' => array('Report')
+  ));
 
-$entity = function ($e) {
-  return $e
-    ->_(Space(),     function () { return '&nbsp;'; })
-    ->_(Lt(),        function () { return '&lt;'; })
-    ->_(Gt(),        function () { return '&gt;'; })
-    ->_(Ampersand(), function () { return '&amp;'; })
-    ->end;
-};
-
-
+/********************************************************************
+** Interactive HTML report rendering functions.
+*/
 
 $highlight = function ($h) {
   return $h
@@ -71,7 +81,29 @@ $highlight = function ($h) {
     ->end;
 };
 
+$entity = function ($e) {
+  return $e
+    ->_(Space(),     function () { return '&nbsp;'; })
+    ->_(Lt(),        function () { return '&lt;'; })
+    ->_(Gt(),        function () { return '&gt;'; })
+    ->_(Ampersand(), function () { return '&amp;'; })
+    ->end;
+};
 
+$category = function ($c) {
+  return $c
+    ->_(Symbol(),      function () { return 'Symbol'; })
+    ->_(Punctuation(), function () { return 'Punctuation'; })
+    ->_(Keyword(),     function () { return 'Keyword'; })
+    ->_(Literal(),     function () { return 'Literal'; })
+    ->_(Constant(),    function () { return 'Constant'; })
+    ->_(Operator(),    function () { return 'Operator'; })
+    ->_(Builtin(),     function () { return 'Builtin'; })
+    ->_(Library(),     function () { return 'Library'; })
+    ->_(Variable(),    function () { return 'Variable'; })
+    ->_(Error(),       function () { return 'Error'; })
+    ->end;
+};
 
 $messageToAttr = function ($ms) {
   $conv = function ($m) {
@@ -85,9 +117,6 @@ $messageToAttr = function ($ms) {
   };
   return 'onclick=msg(this, ['. implode(',', array_map($conv, $ms)) .']);';
 };
-
-
-
 
 $html = function ($r) {
   $html0 = function ($rs) {
@@ -118,17 +147,16 @@ $html = function ($r) {
         return $ms ? '<span><span class="RichReports_Clickable RichReports_Clickable_Exclamation" ' . $messageToAttr($ms) . '>!</span><span class="'. implode(array_map($highlight, $hs)) .'">' . $html0($rs) . '</span></span>'
                    : '<span class="'. implode(array_map($highlight, $hs)) .'">' . $html0($rs) . '</span>';
       })
-    ->_(Block(_,_,_), function ($_,$_,$rs) {return '<div>' . $html0($rs) . '</div>';})
-    ->_(BlockIndent(_,_,_), function ($_,$_,$rs) {return '<div class="RichReports_BlockIndent">' . $html0($rs) . '</div>';})
+    ->_(Block(_,_,_), function ($_,$_,$rs) {return '<div class="RichReports_Block">' . $html0($rs) . '</div>';})
     ->_(Intersperse(_,_), function ($r,$rs) {return implode($html($r), array_map($html, $rs));})
     ->_(Finalize(_), function ($r) {
         $s = $html($r);
         return <<<REPORT
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <style>
+  <head>
+    <meta charset="utf-8">
+    <style>
     body {
       font-family: "Courier", monospace;
       font-size: 12px;
@@ -158,18 +186,15 @@ $html = function ($r) {
     .RichReports_Clickable:hover {
       background-color: yellow;
     }
-    .RichReports_Keyword {
-      font-weight: bold;
-      color: blue;
-    }
-    .RichReports_Variable {
-      font-style: italic;
-      color: green;
-    }
-    .RichReports_Literal {
-      font-weight: bold;
-      color: firebrick;
-    }
+    .RichReports_Symbol       { font-weight: bold;  color: black; }
+    .RichReports_Punctuation  { font-weight: bold;  color: black; }
+    .RichReports_Keyword      { font-weight: bold;  color: blue; }
+    .RichReports_Literal      { font-weight: bold;  color: firebrick; }
+    .RichReports_Constant     { font-weight: bold;  color: blue; }
+    .RichReports_Operator     { font-weight: bold;  color: blue; }
+    .RichReports_Builtin      { font-weight: bold;  color: purple; }
+    .RichReports_Library      { font-weight: bold;  color: purple; }
+    .RichReports_Variable     { font-style: italic; color: green; }
     .RichReports_Error {
       font-weight: bold;
       color: red;
@@ -180,11 +205,11 @@ $html = function ($r) {
     .RichReports_Highlight_Unreachable { background-color: orange;    }
     .RichReports_Highlight_Duplicate   { background-color: yellow;    }
     .RichReports_Highlight_Error       { background-color: lightpink; }
-    .RichReports_BlockIndent           { margin-left:      10px;      }
-  </style>
-  <script type="text/javascript", src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.3/jquery.min.js"></script>
-  <script type="text/javascript">
-    funciton msg (obj, msgs) {
+    .RichReports_Block                 { margin-left:      10px;      }
+    </style>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.3/jquery.min.js"></script>
+    <script type="text/javascript">
+    function msg (obj, msgs) {
       var html = '';
       for (var i = 0; i < msgs.length; i++)
         html += '<div class="RichReports_MessagePortion">' + msgs[i] + '</div>';
@@ -194,21 +219,16 @@ $html = function ($r) {
       var left = $(obj).offset().left;
       $('#RichReports_Message').offset({top:top + 15, left:left + 15});
     }     
-  </script>
+    </script>
   </head>
   <body>
   {$s}
-  <div id="RichReports_Message" style="display:none;" onclick="this.style.display='none';"></div>
+    <div id="RichReports_Message" style="display:none;" onclick="this.style.display='none';"></div>
   </body>
 </html>
 REPORT;
       })
     ->end;
-
 };
 
-
-
-
-
-#eof
+/*eof*/ ?>
