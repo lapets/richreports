@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name             = 'RichReports',
-    version          = '0.0.2.0',
+    version          = '0.0.3.0',
     packages         = ['richreports',],
     license          = 'MIT License',
 	url              = 'http://richreports.org',
