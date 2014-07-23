@@ -1,15 +1,19 @@
 ----------------------------------------------------------------
 --
--- | Rich Reports
+-- | RichReports
 --
 -- @Text\/RichReports.hs@
 --
---   Definitions for the representation and construction of a
---   data structure corresponding to a structured representation
---   of the concrete syntax of a programming language, with
---   annotations corresponding to static analysis results.
---   Includes support for generation of ASCII text, as well as
---   formatted HTML with interactive messages.
+--   A library that supports the manual and automated assembly of
+--   modules for building interactive HTML reports consisting of
+--   abstract syntax trees as concrete syntax annotated with the
+--   results of static analysis and abstract interpretation
+--   algorithms.
+--
+--   Web:     richreports.org
+--   Version: 0.0.3.0
+--
+--
 
 ----------------------------------------------------------------
 --
@@ -23,8 +27,7 @@ import Data.String.Utils (join, replace)
 import qualified Text.Ascetic.HTML as H
 
 ----------------------------------------------------------------
--- | Data structures (also used for report construction process)
---   and classes.
+-- | Rich report data structure definitions.
 
 type Message = Report
 
@@ -36,50 +39,53 @@ data Highlight =
   | Highlight [H.Class]
   deriving (Eq, Show)
 
-data Category =
-    Keyword
-  | Literal
-  | Constant
-  | Variable
-  | Error
-  deriving (Eq, Show)
-
 data Entity = 
     Lt
   | Gt
   | Space
   | Ampersand
-  deriving (Eq)
-
-instance Show Entity where
-  show e = case e of
-    Lt -> "&lt;"
-    Gt -> "&gt;"
-    Space -> "&nbsp;"
-    Ampersand ->"&amp;"
+  deriving (Eq, Show)
 
 data Report =
-    Text String
-  | C Category [Highlight] [Message] String
-  | Entity Entity
-  | Conc [Report]
-  | Field Report
-  | Row [Report]
-  | Table [Report]
-  | Indent Report
-  | Line [String] [Report]
-  | LineIfFlat [String] Report
+    Entity Entity
+  | Text String
+  | Symbol String
+  | Punctuation String
+  | Keyword String
+  | Literal String
+  | Konstant String -- "Constant" is a reserved word in some cases.
+  | Operator String
+  | Builtin String
+  | Library String
+  | Variable String
+  | Error String
+
   | Atom [Highlight] [Message] [Report]
   | Span [Highlight] [Message] [Report]
+  | Line [Report]
   | Block [Highlight] [Message] [Report]
-  | BlockIndent [Highlight] [Message] [Report]
+
+  | Concat [Report]
   | Intersperse Report [Report]
-  | Finalize Report
+  | Field [Report]
+  | Row [Report]
+  | Table [Report]
+  
+  | Page Report
   deriving (Show, Eq)
 
-class ToReport a where
-  report :: a -> Report
+----------------------------------------------------------------
+-- | Rich report class declaration (typically, abstract syntax
+--   data structures would be members).
 
+class ToReport a where
+  report :: a -> Report 
+
+----------------------------------------------------------------
+-- | Rich report highlight and message class declaration
+--   (typically, static analysis results data structures would
+--   be members).
+  
 class ToHighlights a where
   highlights :: a -> [Highlight]
 
@@ -87,98 +93,91 @@ class ToMessages a where
   messages :: a -> [Message]
 
 ----------------------------------------------------------------
--- | Default class members.
+-- | Default class memberships for polymorphic types.
 
 instance ToReport a => ToReport [a] where
-  report xs = Conc $ map report xs
+  report xs = Concat $ map report xs
   
 instance ToReport a => ToReport (Maybe a) where
-  report x = Conc $ maybe [] (\r -> [report r]) x
-
-----------------------------------------------------------------
--- | Concise synonyms.
-
-keyword = C Keyword [] []
-keyword_ = C Keyword
-key = C Keyword [] []
-key_ = C Keyword
-
-literal = C Literal [] []
-literal_ = C Literal
-lit = C Literal [] []
-lit_ = C Literal
-
-constant = C Constant [] []
-constant_ = C Constant
-const = C Constant [] []
-const_ = C Constant
-
-variable = C Variable [] []
-variable_ = C Variable
-var = C Variable [] []
-var_ = C Variable
-
-error = C Error [] []
-error_ = C Error
-err = C Error [] []
-err_ = C Error
+  report x = Concat $ maybe [] (\r -> [report r]) x
 
 ----------------------------------------------------------------
 -- | Generation of an interactive HTML version of the report.
 
-highlight :: Highlight -> [H.Class]
-highlight h = case h of
+highlightsStr :: [Highlight] -> [H.Class]
+highlightsStr hs = concat [highlightStr h | h <- hs]
+
+highlightStr :: Highlight -> [H.Class]
+highlightStr h = case h of
   HighlightUnbound     -> ["RichReports_Highlight_Unbound"]
   HighlightUnreachable -> ["RichReports_Highlight_Unreachable"]
   HighlightDuplicate   -> ["RichReports_Highlight_Duplicate"]
   HighlightError       -> ["RichReports_Highlight_Error"]
   Highlight hs         -> hs
 
-messageToAttr :: [Message] -> (H.Property, H.Value)
-messageToAttr ms =
+entityStr :: Entity -> String
+entityStr e = case e of
+    Lt        -> "&lt;"
+    Gt        -> "&gt;"
+    Space     -> "&nbsp;"
+    Ampersand ->"&amp;"
+  
+messagesToAttr :: [Message] -> (H.Property, H.Value)
+messagesToAttr ms =
   let conv m = 
-        replace "\r" "" $
-        replace "\n" "" $
-        replace "'" "\\'" $
         replace "\"" "&quot;" $
+        replace "'" "\\'" $
+        replace "\n" "" $
+        replace "\r" "" $
           show $ H.html m
   in ("onclick", "msg(this, [" ++ (join "," ["'" ++ conv m ++ "'" | m <- ms]) ++ "]);")
 
 instance H.ToHTML Report where
   html r = case r of
-    Text s -> H.content s
-    C c hs ms s -> 
-      H.span_ 
-        (    [ ("class", 
-                "RichReports_" ++ show c 
-                ++ " " ++ (if length ms > 0 then "RichReports_Clickable" else "")
-                ++ " " ++ (if length hs > 0 then "RichReports_Highlight" else "")
-                ++ " " ++ (join " " (concat (map highlight hs)))
-                )
-             ]
-          ++ ( if length ms > 0 then [messageToAttr ms] else [] )
-        )
-        [H.content s]
-    Entity e -> H.content (show e)
-    Conc rs -> H.conc [H.html r | r <- rs]
-    Field r -> H.td (H.html r)
-    Row rs -> H.tr [ H.html r | r <- rs ]
-    Table rs -> H.table [ H.html r | r <- rs ]
-    Line _ rs -> H.div [H.html r | r <- rs]
+    Entity e -> H.span_ [("class", "RichReports_Entity")] [H.content (entityStr e)]
+    Text s   -> H.span_ [("class", "RichReports_Text")] [H.content s]
+    Symbol s   -> H.span_ [("class", "RichReports_Symbol")] [H.content s]
+    Punctuation s   -> H.span_ [("class", "RichReports_Punctuation")] [H.content s]
+    Keyword s   -> H.span_ [("class", "RichReports_Keyword")] [H.content s]
+    Literal s   -> H.span_ [("class", "RichReports_Literal")] [H.content s]
+    Konstant s   -> H.span_ [("class", "RichReports_Konstant")] [H.content s]
+    Operator s   -> H.span_ [("class", "RichReports_Operator")] [H.content s]
+    Builtin s   -> H.span_ [("class", "RichReports_Builtin")] [H.content s]
+    Library s   -> H.span_ [("class", "RichReports_Library")] [H.content s]
+    Variable s   -> H.span_ [("class", "RichReports_Variable")] [H.content s]
+    Error s   -> H.span_ [("class", "RichReports_Error")] [H.content s]
+
     Atom hs ms rs ->
-      let out = H.span_ [("class", join " " (concat (map highlight hs)))] [H.html r | r <- rs]
-      in case ms of
-        [] -> out
-        ms -> H.span [H.span_ [("class","RichReports_Clickable"), messageToAttr ms] [out]]
+      if length ms == 0 then
+        H.span_ [("class", join " " (highlightsStr hs))] [H.html r | r <- rs]
+      else
+        H.span [
+          H.span_
+            ([("class", join " " ["RichReports_Clickable"])] ++ [messagesToAttr ms])
+            [
+              H.span_
+                [("class", join " " ((if length hs > 0 || length ms > 0 then ["RichReports_Highlight"] else []) ++ highlightsStr hs))]
+                [H.html r | r <- rs]
+            ]
+        ]  
     Span hs ms rs ->
-      let out = H.span_ [("class", join " " (concat (map highlight hs)))] [H.html r | r <- rs]
-      in case ms of
-        [] -> out
-        ms -> H.span [H.span_ [("class","RichReports_Clickable RichReports_Clickable_Exclamation"), messageToAttr ms] [H.content "!"], out]
-    Block _ _ rs -> H.div [H.html r | r <- rs]
-    BlockIndent _ _ rs -> H.div_ [("class", "RichReports_BlockIndent")] [H.html r | r <- rs]
+      if length ms == 0 then
+        H.span_ ([("class", join " " (highlightsStr hs))]) [H.html r | r <- rs]
+      else
+        H.conc
+          [ H.span_ ([("class", join " " ["RichReports_Clickable", "RichReports_Clickable_Exclamation"])] ++ [messagesToAttr ms]) [H.content "!"]
+          , H.span_ ([("class", join " "(highlightsStr hs))]) [H.html r | r <- rs]
+          ]
+    Line rs -> H.div [H.html r | r <- rs]
+    Block _ _ rs -> H.div_ [("class", "RichReports_Block")] [H.html r | r <- rs]
+
+    Concat rs -> H.conc [H.html r | r <- rs]
     Intersperse r rs -> H.conc $ intersperse (H.html r) [H.html r | r <- rs]
-    Finalize r -> 
+    Field rs -> H.td (H.conc [H.html r | r <- rs])
+    Row rs -> H.tr [H.html r | r <- rs]
+    Table rs -> H.table [H.html r | r <- rs]
+
+    Page r -> 
       H.file 
         (H.head [
           H.meta_ [("http-equiv","Content-type"),("content","text/html;charset=UTF-8")],
@@ -211,23 +210,40 @@ instance H.ToHTML Report where
                 Nothing, 
                 [ ("background-color","yellow"), 
                   ("border","1px solid black"), 
-                  ("margin","0px 5px 0px 5px"),
+                  ("margin","0px 5px 1px 5px"),
                   ("padding","0px 2px 0px 2px"),
                   ("font-size","9px")
                 ]
               ),
-              ( [".RichReports_Clickable"], Just "hover", [("background-color","yellow")] ),
+              ( [".RichReports_Clickable"],
+                Just "hover",
+                [ ("background-color","yellow")
+                ] 
+              ),
+              ( [".RichReports_Entity"], Nothing, [] ),
+              ( [".RichReports_Text"], Nothing, [] ),
+              ( [".RichReports_Symbol"], Nothing, [("font-weight","bold"), ("color","black")] ),
+              ( [".RichReports_Punctuation"], Nothing, [("font-weight","bold"), ("color","black")] ),
               ( [".RichReports_Keyword"], Nothing, [("font-weight","bold"), ("color","blue")] ),
-              ( [".RichReports_Variable"], Nothing, [("font-style","italic"), ("color","green")] ),
               ( [".RichReports_Literal"], Nothing, [("font-weight","bold"), ("color","firebrick")] ),
-              ( [".RichReports_Comment"], Nothing, [("font-style","italic"), ("color","#8A8A8A")] ),
-              ( [".RichReports_Error"], Nothing, [("font-weight","bold"), ("color","red"), ("text-decoration","underline")] ),
+              ( [".RichReports_Konstant"], Nothing, [("font-weight","bold"), ("color","blue")] ),
+              ( [".RichReports_Operator"], Nothing, [("font-weight","bold"), ("color","blue")] ),
+              ( [".RichReports_Builtin"], Nothing, [("font-weight","bold"), ("color","purple")] ),
+              ( [".RichReports_Library"], Nothing, [("font-weight","bold"), ("color","purple")] ),
+              ( [".RichReports_Variable"], Nothing, [("font-weight","bold"), ("color","green")] ),
+              ( [".RichReports_Error"],
+                Nothing,
+                [ ("font-weight","bold"),
+                  ("color","red"),
+                  ("text-decoration","underline")
+                ]
+              ),
               ( [".RichReports_Highlight"], Nothing, [("margin","2px")] ),
               ( [".RichReports_Highlight_Unbound"], Nothing, [("background-color","orange")] ),
               ( [".RichReports_Highlight_Unreachable"], Nothing, [("background-color","orange")] ),
               ( [".RichReports_Highlight_Duplicate"], Nothing, [("background-color","yellow")] ),
               ( [".RichReports_Highlight_Error"], Nothing, [("background-color","lightpink")] ),
-              ( [".RichReports_BlockIndent"], Nothing, [("margin-left","10px")] )
+              ( [".RichReports_Block"], Nothing, [("margin-left","10px")] )
             ]
           ),
           H.script_ [("type","text/javascript"), ("src","http://ajax.googleapis.com/ajax/libs/jquery/1.4.3/jquery.min.js")] "",
@@ -246,7 +262,5 @@ instance H.ToHTML Report where
           H.html r,
           H.div_ [("id","RichReports_Message"), ("style","display:none;"), ("onclick", "this.style.display='none';")] [H.content ""]
         ])
-
-    _ -> H.content ""
 
 --eof
